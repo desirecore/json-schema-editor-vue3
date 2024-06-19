@@ -1,78 +1,89 @@
 <template>
   <div class="json-schema-editor">
-    <a-row class="row" :gutter="10">
-      <a-col :span="8" class="ant-col-name">
-        <div :style="{ marginLeft: `${20 * deep}px` }" class="ant-col-name-c">
-          <a-button v-if="pickValue.type === 'object'" type="link" style="color:rgba(0,0,0,.65)"
-            @click="hidden = !hidden">
-            <template #icon>
-              <caret-right-outlined v-if="hidden" />
-              <caret-down-outlined v-else />
-            </template>
-          </a-button>
-          <span v-else style="width:32px;display:inline-block"></span>
-          <a-input :disabled="disabled || root" :default-value="pickKey" class="ant-col-name-input" @blur="onInputName"
-            :key="pickValue" />
-        </div>
-        <a-tooltip v-if="root">
-          <template v-slot:title>{{ local['checked_all'] }}</template>
-          <a-checkbox :disabled="!isObject && !isArray" class="ant-col-name-required" @change="onRootCheck" />
-        </a-tooltip>
-        <a-tooltip v-else>
-          <template v-slot:title>{{ local['required'] }}</template>
-          <a-checkbox :disabled="isItem" :checked="checked" class="ant-col-name-required" @change="onCheck" />
-        </a-tooltip>
-      </a-col>
-      <a-col :span="4">
-        <a-select v-model:value="pickValue.type" :disabled="disabledType" class="ant-col-type" @change="onChangeType"
-          :getPopupContainer="triggerNode => {
+    <a-radio-group v-model:value="showType" v-if="codeMode">
+      <a-radio-button value="ui">可视化</a-radio-button>
+      <a-radio-button value="code">Schema</a-radio-button>
+    </a-radio-group>
+    <div v-show="showType === 'ui'">
+      <a-row class="row" :gutter="10">
+        <a-col :span="8" class="ant-col-name">
+          <div :style="{ marginLeft: `${20 * deep}px` }" class="ant-col-name-c">
+            <a-button v-if="pickValue.type === 'object'" type="link" style="color:rgba(0,0,0,.65)"
+              @click="hidden = !hidden">
+              <template #icon>
+                <caret-right-outlined v-if="hidden" />
+                <caret-down-outlined v-else />
+              </template>
+            </a-button>
+            <span v-else style="width:32px;display:inline-block"></span>
+            <a-input :disabled="disabled || root" :default-value="pickKey" class="ant-col-name-input"
+              @blur="onInputName" :key="pickValue" />
+          </div>
+          <a-tooltip v-if="root">
+            <template v-slot:title>{{ local['checked_all'] }}</template>
+            <a-checkbox :disabled="!isObject && !isArray" class="ant-col-name-required" @change="onRootCheck" />
+          </a-tooltip>
+          <a-tooltip v-else>
+            <template v-slot:title>{{ local['required'] }}</template>
+            <a-checkbox :disabled="isItem" :checked="checked" class="ant-col-name-required" @change="onCheck" />
+          </a-tooltip>
+        </a-col>
+        <a-col :span="4">
+          <a-select v-model:value="pickValue.type" :disabled="disabledType" class="ant-col-type" @change="onChangeType"
+            :getPopupContainer="triggerNode => {
               return triggerNode.parentNode || document.body
             }">
-          <a-select-option :key="t" v-for="t in TYPE_NAME">
-            {{ t }}
-          </a-select-option>
-        </a-select>
-      </a-col>
-      <a-col :span="6">
-        <a-input v-model:value="pickValue.title" class="ant-col-title" :placeholder="local['title']" />
-      </a-col>
-      <a-col :span="6" class="ant-col-setting">
-        <a-tooltip>
-          <template v-slot:title>{{ local['adv_setting'] }}</template>
-          <a-button type="link" class="setting-icon" @click="onSetting">
-            <template #icon><setting-outlined /></template>
-          </a-button>
-        </a-tooltip>
-        <a-tooltip v-if="isObject">
-          <template v-slot:title>{{ local['add_child_node'] }}</template>
-          <a-button type="link" class="plus-icon" @click="addChild">
-            <template #icon><plus-outlined /></template>
+            <a-select-option :key="t" v-for="t in TYPE_NAME">
+              {{ t }}
+            </a-select-option>
+          </a-select>
+        </a-col>
+        <a-col :span="6">
+          <a-input v-model:value="pickValue.title" class="ant-col-title" :placeholder="local['title']" />
+        </a-col>
+        <a-col :span="6" class="ant-col-setting">
+          <a-tooltip>
+            <template v-slot:title>{{ local['adv_setting'] }}</template>
+            <a-button type="link" class="setting-icon" @click="onSetting">
+              <template #icon><setting-outlined /></template>
+            </a-button>
+          </a-tooltip>
+          <a-tooltip v-if="isObject">
+            <template v-slot:title>{{ local['add_child_node'] }}</template>
+            <a-button type="link" class="plus-icon" @click="addChild">
+              <template #icon><plus-outlined /></template>
 
-          </a-button>
-        </a-tooltip>
-        <a-tooltip v-if="!root && !isItem">
-          <template v-slot:title>{{ local['remove_node'] }}</template>
-          <a-button type="link" class="close-icon ant-btn-icon-only" @click="removeNode">
-            <i aria-label="icon: plus" class="anticon anticon-plus">
-              <svg viewBox="64 64 896 896" data-icon="plus" width="1em" height="1em" fill="currentColor"
-                aria-hidden="true" focusable="false" class="">
-                <path
-                  d="M810.666667 273.493333L750.506667 213.333333 512 451.84 273.493333 213.333333 213.333333 273.493333 451.84 512 213.333333 750.506667 273.493333 810.666667 512 572.16 750.506667 810.666667 810.666667 750.506667 572.16 512z"
-                  p-id="1142"></path>
-              </svg>
-            </i>
-          </a-button>
-        </a-tooltip>
-      </a-col>
-    </a-row>
-    <template v-if="!hidden && pickValue.properties && !isArray">
-      <json-schema-editor v-for="(item, key, index) in pickValue.properties" :value="{ [key]: item }" :parent="pickValue"
-        :key="index" :deep="deep + 1" :root="false" class="children" :lang="lang" :custom="custom" />
-    </template>
-    <template v-if="isArray">
-      <json-schema-editor :value="{ items: pickValue.items }" :deep="deep + 1" disabled isItem :root="false" class="children"
-        :lang="lang" :custom="custom" />
-    </template>
+            </a-button>
+          </a-tooltip>
+          <a-tooltip v-if="!root && !isItem">
+            <template v-slot:title>{{ local['remove_node'] }}</template>
+            <a-button type="link" class="close-icon ant-btn-icon-only" @click="removeNode">
+              <i aria-label="icon: plus" class="anticon anticon-plus">
+                <svg viewBox="64 64 896 896" data-icon="plus" width="1em" height="1em" fill="currentColor"
+                  aria-hidden="true" focusable="false" class="">
+                  <path
+                    d="M810.666667 273.493333L750.506667 213.333333 512 451.84 273.493333 213.333333 213.333333 273.493333 451.84 512 213.333333 750.506667 273.493333 810.666667 512 572.16 750.506667 810.666667 810.666667 750.506667 572.16 512z"
+                    p-id="1142"></path>
+                </svg>
+              </i>
+            </a-button>
+          </a-tooltip>
+        </a-col>
+      </a-row>
+      <template v-if="!hidden && pickValue.properties && !isArray">
+        <json-schema-editor v-for="(item, key, index) in pickValue.properties" :value="{ [key]: item }"
+          :parent="pickValue" :key="index" :deep="deep + 1" :root="false" class="children" :lang="lang"
+          :custom="custom" />
+      </template>
+      <template v-if="isArray">
+        <json-schema-editor :value="{ items: pickValue.items }" :deep="deep + 1" disabled isItem :root="false"
+          class="children" :lang="lang" :custom="custom" />
+      </template>
+    </div>
+    <div v-show="showType === 'code'">
+      123
+    </div>
+
     <a-modal v-model:visible="modalVisible" v-if="modalVisible" :title="local['adv_setting']" :maskClosable="false"
       :okText="local['ok']" :cancelText="local['cancel']" width="800px" @ok="handleOk"
       wrapClassName="json-schema-editor-advanced-modal">
@@ -92,8 +103,8 @@
                 :placeholder="local['enum_msg']"></a-textarea>
               <a-select v-else-if="advancedAttr[key].type === 'array'" v-model:value="advancedValue[key]"
                 style="width:100%" :getPopupContainer="triggerNode => {
-                    return triggerNode.parentNode || document.body
-                  }" :placeholder="local[key]">
+                  return triggerNode.parentNode || document.body
+                }" :placeholder="local[key]">
                 <a-select-option value="">{{ local['nothing'] }}</a-select-option>
                 <a-select-option :key="t" v-for="t in advancedAttr[key].enums">
                   {{ t }}
@@ -143,7 +154,7 @@
 <script>
 import { isNull, renamePropertyAndKeepKeyPrecedence } from './util'
 import { TYPE_NAME, TYPE } from './type/type'
-import { Row, Col, Button, Input, InputNumber, Icon, Checkbox, Select, Tooltip, Modal, Form, Switch } from 'ant-design-vue'
+import { Row, Col, Button, Input, InputNumber, Icon, Checkbox, Select, Tooltip, Modal, Form, Switch, Radio } from 'ant-design-vue'
 import { CaretRightOutlined, CaretDownOutlined, SettingOutlined, PlusOutlined, CloseOutlined, CheckOutlined } from '@ant-design/icons-vue';
 import LocalProvider from './LocalProvider'
 export default {
@@ -162,6 +173,8 @@ export default {
     AForm: Form,
     AFormItem: Form.Item,
     ASwitch: Switch,
+    ARadioButton: Radio.Button,
+    ARadioGroup: Radio.Group,
     CaretRightOutlined,
     CaretDownOutlined, SettingOutlined, PlusOutlined, CloseOutlined, CheckOutlined
   },
@@ -265,7 +278,8 @@ export default {
       addProp: {},// 自定义属性
       customProps: [],
       customing: false,
-      local: LocalProvider(this.lang)
+      local: LocalProvider(this.lang),
+      showType: 'ui'
     }
   },
   methods: {
